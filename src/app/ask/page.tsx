@@ -5,7 +5,7 @@ import Link from "next/link";
 import { QRCodeSVG } from 'qrcode.react';
 
 interface AIResult {
-  category: "minor" | "normal" | "major" | "unsolvable";
+  category: "free" | "minor" | "normal" | "major" | "unsolvable";
   price: number | null;
   is_resolvable: boolean;
   reason: string | null;
