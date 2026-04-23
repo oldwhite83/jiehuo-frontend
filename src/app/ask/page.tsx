@@ -278,7 +278,7 @@ export default function AskPage() {
       <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/rice-paper-2.png')] pointer-events-none"></div>
 
       <div className="z-10 w-full max-w-2xl px-6 flex flex-col items-center">
-        {step !== "divining" && step !== "done" && step !== "gathering_info" && (
+        {step !== "divining" && step !== "done" && (
           <div className="absolute top-8 left-8">
             <Link href="/" className="text-gray-500 hover:text-black tracking-widest text-sm transition-colors">
               ← 返璞归真
