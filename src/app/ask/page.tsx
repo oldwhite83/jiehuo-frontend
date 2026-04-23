@@ -28,17 +28,14 @@ export default function AskPage() {
   const [customAmount, setCustomAmount] = useState<string>("500");
   const [errorMsg, setErrorMsg] = useState("");
   const chatEndRef = useRef<HTMLDivElement>(null);
-  
-  // 支付相关状态
+
   const [orderId, setOrderId] = useState<string | null>(null);
   const [payUrl, setPayUrl] = useState<string | null>(null);
   const [pollIntervalId, setPollIntervalId] = useState<NodeJS.Timeout | null>(null);
 
-  // 最终解卦结果
   const [divination, setDivination] = useState<DivinationResult | null>(null);
   const [showPlain, setShowPlain] = useState<boolean>(false);
-  
-  // 收集信息聊天状态
+
   const [chatMessages, setChatMessages] = useState<{role: "assistant" | "user", content: string}[]>([]);
   const [chatInput, setChatInput] = useState("");
   const [isChatLoading, setIsChatLoading] = useState(false);
@@ -100,11 +97,10 @@ export default function AskPage() {
 
       if (!res.ok) throw new Error("缘分未到，订单生成失败");
       const data = await res.json();
-      
+
       if (data.status === "success") {
         setOrderId(data.order_id);
         if (result?.category === "free" || finalPrice === 0) {
-          // 免费结缘，直接自动支付并进入后续环节
           await fetch(`${getApiUrl()}/order/${data.order_id}/mock_pay`, { method: "POST" });
           initiateGatheringInfo(data.order_id);
         } else {
@@ -158,17 +154,15 @@ export default function AskPage() {
     }
   };
 
-  // 模拟用户扫码支付成功
   const handleMockPay = async () => {
     if (!orderId) return;
     try {
       await fetch(`${getApiUrl()}/order/${orderId}/mock_pay`, { method: "POST" });
-      // 轮询会自然捕获到 "paid" 状态并跳转
     } catch (err) {
       console.error(err);
     }
   };
-  
+
   const handleChatSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!chatInput.trim() || isChatLoading || !orderId) return;
@@ -185,15 +179,14 @@ export default function AskPage() {
         body: JSON.stringify({ messages: newMsgs }),
       });
       const data = await res.json();
-      
+
       if (data.status === "success") {
         setChatMessages(prev => [...prev, { role: "assistant", content: data.result.reply }]);
-        
-        // AI 判断信息收集够了，准备起卦
+
         if (data.result.action === "divine") {
           setTimeout(() => {
             startDivinationAnimation(orderId);
-          }, 2500); // 留2.5秒给用户看最后一句话
+          }, 2500);
         }
       }
     } catch (err) {
@@ -202,7 +195,7 @@ export default function AskPage() {
       setIsChatLoading(false);
     }
   };
-  
+
   useEffect(() => {
     if (step === "gathering_info") {
       chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -212,8 +205,7 @@ export default function AskPage() {
   const startDivinationAnimation = async (oid: string) => {
     setStep("divining");
     setCountdown(4);
-    
-    // 倒计时动画
+
     const timerId = setInterval(() => {
       setCountdown((prev) => {
         if (prev <= 1) {
@@ -226,18 +218,16 @@ export default function AskPage() {
 
     const startTime = Date.now();
     try {
-      // 提前并行请求大模型，节约整体时间
       const res = await fetch(`${getApiUrl()}/divination`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ order_id: oid }),
       });
       const data = await res.json();
-      
-      // 计算接口耗时，确保页面至少展示完整的 4 秒倒计时动画
+
       const elapsed = Date.now() - startTime;
       const remaining = Math.max(0, 4000 - elapsed);
-      
+
       setTimeout(() => {
         if (data.status === "success") {
           setDivination(data);
@@ -253,7 +243,6 @@ export default function AskPage() {
     }
   };
 
-  // 清理副作用
   useEffect(() => {
     return () => {
       if (pollIntervalId) clearInterval(pollIntervalId);
@@ -274,12 +263,12 @@ export default function AskPage() {
   };
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-[#F9F6F0] text-[#333333] font-serif relative">
+    <main className="flex min-h-screen flex-col items-center justify-center bg-[#F9F6F0] text-[#333333] font-serif relative px-4 sm:px-6">
       <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/rice-paper-2.png')] pointer-events-none"></div>
 
-      <div className="z-10 w-full max-w-2xl px-6 flex flex-col items-center">
+      <div className="z-10 w-full max-w-2xl flex flex-col items-center">
         {step !== "divining" && step !== "done" && (
-          <div className="absolute top-8 left-8">
+          <div className="absolute top-6 left-4 sm:top-8 sm:left-8">
             <Link href="/" className="text-gray-500 hover:text-black tracking-widest text-sm transition-colors">
               ← 返璞归真
             </Link>
@@ -289,17 +278,17 @@ export default function AskPage() {
         {/* 状态 1: 输入 */}
         {step === "input" && (
           <div className="w-full flex flex-col items-center animate-fade-in">
-            <h1 className="text-3xl tracking-[0.2em] font-light text-[#2C2C2C] mb-12">施主所问何事？</h1>
+            <h1 className="text-xl sm:text-3xl tracking-[0.15em] sm:tracking-[0.2em] font-light text-[#2C2C2C] mb-8 sm:mb-12 text-center">施主所问何事？</h1>
             <form onSubmit={handleSubmit} className="w-full flex flex-col items-center">
               <textarea
                 value={question}
                 onChange={(e) => setQuestion(e.target.value)}
                 placeholder="请详述心中所惑..."
-                className="w-full md:w-3/4 h-32 bg-transparent border-b border-gray-400 focus:border-gray-800 outline-none resize-none text-center text-lg tracking-wider placeholder:text-gray-400 transition-colors duration-500"
+                className="w-full md:w-3/4 h-24 sm:h-32 bg-transparent border-b border-gray-400 focus:border-gray-800 outline-none resize-none text-center text-base sm:text-lg tracking-wider placeholder:text-gray-400 transition-colors duration-500"
                 autoFocus
               ></textarea>
-              {errorMsg && <p className="text-red-800 mt-4 text-sm tracking-widest">{errorMsg}</p>}
-              <button type="submit" className="mt-12 group relative px-10 py-3 border border-gray-400 hover:border-gray-800 transition-colors duration-500">
+              {errorMsg && <p className="text-red-800 mt-4 text-sm tracking-widest text-center">{errorMsg}</p>}
+              <button type="submit" className="mt-8 sm:mt-12 group relative px-10 py-3 border border-gray-400 hover:border-gray-800 transition-colors duration-500">
                 <span className="tracking-widest">叩问天机</span>
                 <div className="absolute inset-0 bg-black scale-x-0 group-hover:scale-x-100 transition-transform origin-center duration-500 -z-10"></div>
                 <span className="absolute inset-0 flex items-center justify-center tracking-widest text-transparent group-hover:text-white transition-colors duration-500 pointer-events-none">
@@ -313,8 +302,8 @@ export default function AskPage() {
         {/* 状态 2: 通用加载 */}
         {step === "loading" && (
           <div className="flex flex-col items-center justify-center animate-pulse">
-            <div className="w-16 h-16 border-2 border-gray-300 border-t-gray-800 rounded-full animate-spin mb-8"></div>
-            <p className="text-xl tracking-[0.3em] font-light text-gray-600">阴阳流转，天机显化中...</p>
+            <div className="w-12 h-12 sm:w-16 sm:h-16 border-2 border-gray-300 border-t-gray-800 rounded-full animate-spin mb-6 sm:mb-8"></div>
+            <p className="text-base sm:text-xl tracking-[0.2em] sm:tracking-[0.3em] font-light text-gray-600 text-center">阴阳流转，天机显化中...</p>
           </div>
         )}
 
@@ -323,28 +312,28 @@ export default function AskPage() {
           <div className="flex flex-col items-center text-center animate-fade-in w-full">
             {!result.is_resolvable ? (
               <div className="space-y-8">
-                <h2 className="text-2xl text-[#2C2C2C] tracking-widest border-b border-gray-300 pb-4">此事难解</h2>
-                <p className="text-lg text-gray-600 tracking-wider leading-relaxed max-w-lg">
+                <h2 className="text-xl sm:text-2xl text-[#2C2C2C] tracking-widest border-b border-gray-300 pb-4">此事难解</h2>
+                <p className="text-base sm:text-lg text-gray-600 tracking-wider leading-relaxed max-w-lg">
                   {result.reason || "天道有常，此事非人力与卦象所能及。"}
                 </p>
                 <button onClick={reset} className="mt-8 px-8 py-2 border border-gray-400 text-gray-600 hover:text-black hover:border-black transition-colors tracking-widest">重新叩问</button>
               </div>
             ) : (
-              <div className="space-y-8 w-full flex flex-col items-center">
-                <h2 className="text-2xl text-[#2C2C2C] tracking-widest">天机已定，待结善缘</h2>
-                <div className="py-8 border-y border-gray-300 w-full max-w-md">
+              <div className="space-y-6 sm:space-y-8 w-full flex flex-col items-center">
+                <h2 className="text-xl sm:text-2xl text-[#2C2C2C] tracking-widest">天机已定，待结善缘</h2>
+                <div className="py-6 sm:py-8 border-y border-gray-300 w-full max-w-md">
                   {result.category === "free" && (
-                    <p className="text-lg tracking-wider text-gray-700">此等微末小事，无需破费。<span className="text-2xl font-bold mx-2">免费</span>结缘</p>
+                    <p className="text-base sm:text-lg tracking-wider text-gray-700">此等微末小事，无需破费。<span className="text-xl sm:text-2xl font-bold mx-2">免费</span>结缘</p>
                   )}
                   {result.category === "minor" && (
-                    <p className="text-lg tracking-wider text-gray-700">寻常失物之事，润笔费：<span className="text-2xl font-bold mx-2">{result.price}</span>元</p>
+                    <p className="text-base sm:text-lg tracking-wider text-gray-700">寻常失物之事，润笔费：<span className="text-xl sm:text-2xl font-bold mx-2">{result.price}</span>元</p>
                   )}
                   {result.category === "normal" && (
-                    <p className="text-lg tracking-wider text-gray-700">常人问势之事，润笔费：<span className="text-2xl font-bold mx-2">{result.price}</span>元</p>
+                    <p className="text-base sm:text-lg tracking-wider text-gray-700">常人问势之事，润笔费：<span className="text-xl sm:text-2xl font-bold mx-2">{result.price}</span>元</p>
                   )}
                   {result.category === "major" && (
-                    <div className="flex flex-col items-center space-y-6">
-                      <p className="text-lg tracking-wider text-red-900 font-semibold">此事干系重大，需诚心叩问</p>
+                    <div className="flex flex-col items-center space-y-4 sm:space-y-6">
+                      <p className="text-base sm:text-lg tracking-wider text-red-900 font-semibold">此事干系重大，需诚心叩问</p>
                       <div className="flex items-center space-x-2">
                         <span className="tracking-widest">随喜润笔：</span>
                         <input type="number" min="500" value={customAmount} onChange={(e) => setCustomAmount(e.target.value)} className="bg-transparent border-b border-gray-800 outline-none text-center w-24 text-xl font-bold py-1"/>
@@ -353,9 +342,9 @@ export default function AskPage() {
                     </div>
                   )}
                 </div>
-                <div className="flex space-x-6 mt-8">
-                  <button onClick={reset} className="px-8 py-2 border border-gray-300 text-gray-500 hover:text-black hover:border-gray-500 transition-colors tracking-widest">再思量</button>
-                  <button onClick={handleCreateOrder} className="px-8 py-2 bg-[#2C2C2C] text-white border border-[#2C2C2C] hover:bg-black transition-colors tracking-widest">
+                <div className="flex gap-4 sm:space-x-6 mt-6 sm:mt-8">
+                  <button onClick={reset} className="px-6 sm:px-8 py-2 border border-gray-300 text-gray-500 hover:text-black hover:border-gray-500 transition-colors tracking-widest text-sm sm:text-base">再思量</button>
+                  <button onClick={handleCreateOrder} className="px-6 sm:px-8 py-2 bg-[#2C2C2C] text-white border border-[#2C2C2C] hover:bg-black transition-colors tracking-widest text-sm sm:text-base">
                     {result.category === "free" ? "直接解惑" : "结缘支付"}
                   </button>
                 </div>
@@ -364,24 +353,22 @@ export default function AskPage() {
           </div>
         )}
 
-        {/* 状态 4: 支付等待区 (带模拟支付按钮) */}
+        {/* 状态 4: 支付等待区 */}
         {step === "payment" && (
-          <div className="flex flex-col items-center text-center animate-fade-in space-y-8">
-            <h2 className="text-2xl text-[#2C2C2C] tracking-widest">请扫码结缘</h2>
-            <div className="w-64 h-64 border-2 border-gray-300 bg-white flex items-center justify-center relative">
+          <div className="flex flex-col items-center text-center animate-fade-in space-y-6 sm:space-y-8">
+            <h2 className="text-xl sm:text-2xl text-[#2C2C2C] tracking-widest">请扫码结缘</h2>
+            <div className="w-48 h-48 sm:w-64 sm:h-64 border-2 border-gray-300 bg-white flex items-center justify-center relative">
               {payUrl && payUrl.startsWith("weixin://") ? (
-                <QRCodeSVG value={payUrl} size={220} />
+                <QRCodeSVG value={payUrl} size={160} className="sm:w-[220px] sm:h-[220px]" />
               ) : (
-                <span className="text-gray-400 tracking-widest">[ 微信二维码占位 ]</span>
+                <span className="text-gray-400 tracking-widest text-xs sm:text-base">[ 微信二维码占位 ]</span>
               )}
-              {/* 扫描线 */}
               <div className="absolute top-0 left-0 w-full h-1 bg-green-500 opacity-50 animate-scan"></div>
             </div>
-            <p className="text-sm text-gray-500 tracking-widest animate-pulse">正在静候施主结缘...</p>
-            
-            {/* 仅供测试的模拟支付按钮 */}
+            <p className="text-xs sm:text-sm text-gray-500 tracking-widest animate-pulse">正在静候施主结缘...</p>
+
             {(!payUrl || !payUrl.startsWith("weixin://")) && (
-              <div className="mt-12 pt-8 border-t border-gray-300 w-full">
+              <div className="mt-8 sm:mt-12 pt-6 sm:pt-8 border-t border-gray-300 w-full">
                 <p className="text-xs text-red-400 mb-4 tracking-widest">未配置真实密钥，降级为调试模式</p>
                 <button onClick={handleMockPay} className="px-6 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 tracking-widest text-sm transition-colors">
                   模拟支付成功
@@ -390,30 +377,30 @@ export default function AskPage() {
             )}
           </div>
         )}
-        
-        {/* 状态 4.5: 信息收集聊天 (类随便逛逛) */}
+
+        {/* 状态 4.5: 信息收集聊天 */}
         {step === "gathering_info" && (
-          <div className="w-full flex flex-col h-[80vh] bg-white bg-opacity-40 p-4 border border-gray-300 shadow-sm animate-fade-in">
-            <div className="text-center pb-4 border-b border-gray-300 mb-4">
+          <div className="w-full flex flex-col h-[85vh] sm:h-[80vh] bg-white bg-opacity-40 p-3 sm:p-4 border border-gray-300 shadow-sm animate-fade-in">
+            <div className="text-center pb-3 sm:pb-4 border-b border-gray-300 mb-3 sm:mb-4">
               <span className="tracking-[0.2em] font-light text-[#2C2C2C]">高人问询</span>
             </div>
-            
-            <div className="flex-1 overflow-y-auto space-y-6 scrollbar-hide py-4 pr-2">
+
+            <div className="flex-1 overflow-y-auto space-y-4 sm:space-y-6 scrollbar-hide py-3 sm:py-4 pr-1 sm:pr-2">
               {chatMessages.map((msg, idx) => (
                 <div key={idx} className={`flex flex-col ${msg.role === "user" ? "items-end" : "items-start"} animate-fade-in`}>
-                  <div className={`max-w-[85%] px-5 py-3 leading-relaxed tracking-wider ${
+                  <div className={`max-w-[90%] sm:max-w-[85%] px-4 sm:px-5 py-2 sm:py-3 leading-relaxed tracking-wider ${
                     msg.role === "user" ? "bg-[#2C2C2C] text-white" : "bg-transparent border border-gray-300 text-gray-800"
                   }`}>
                     {msg.content}
                   </div>
-                  <span className="text-xs text-gray-400 mt-2 tracking-widest">
+                  <span className="text-xs text-gray-400 mt-1 sm:mt-2 tracking-widest">
                     {msg.role === "user" ? "施主" : "高人"}
                   </span>
                 </div>
               ))}
               {isChatLoading && (
                 <div className="flex flex-col items-start animate-fade-in">
-                  <div className="max-w-[85%] px-5 py-3 bg-transparent border border-gray-300 text-gray-800 flex space-x-2">
+                  <div className="max-w-[90%] sm:max-w-[85%] px-4 sm:px-5 py-2 sm:py-3 bg-transparent border border-gray-300 text-gray-800 flex space-x-2">
                     <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></span>
                     <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "0.2s" }}></span>
                     <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "0.4s" }}></span>
@@ -423,20 +410,20 @@ export default function AskPage() {
               <div ref={chatEndRef} />
             </div>
 
-            <div className="pt-4 border-t border-gray-300 mt-auto">
-              <form onSubmit={handleChatSubmit} className="flex space-x-4">
+            <div className="pt-3 sm:pt-4 border-t border-gray-300 mt-auto">
+              <form onSubmit={handleChatSubmit} className="flex gap-2 sm:gap-4">
                 <input
                   type="text"
                   value={chatInput}
                   onChange={(e) => setChatInput(e.target.value)}
                   placeholder="诉说命理..."
-                  className="flex-1 bg-transparent border-b border-gray-400 focus:border-gray-800 outline-none px-2 py-2 tracking-wider placeholder:text-gray-400 transition-colors"
+                  className="flex-1 bg-transparent border-b border-gray-400 focus:border-gray-800 outline-none px-2 py-2 text-sm sm:text-base tracking-wider placeholder:text-gray-400 transition-colors"
                   disabled={isChatLoading}
                 />
-                <button 
-                  type="submit" 
+                <button
+                  type="submit"
                   disabled={isChatLoading || !chatInput.trim()}
-                  className="px-6 py-2 border border-gray-400 text-gray-600 hover:text-black hover:border-black disabled:opacity-30 transition-colors tracking-widest whitespace-nowrap"
+                  className="px-4 sm:px-6 py-2 border border-gray-400 text-gray-600 hover:text-black hover:border-black disabled:opacity-30 transition-colors tracking-widest text-sm sm:text-base whitespace-nowrap"
                 >
                   奉告
                 </button>
@@ -448,16 +435,16 @@ export default function AskPage() {
         {/* 状态 5: 摇卦动画 */}
         {step === "divining" && (
           <div className="flex flex-col items-center text-center animate-fade-in h-[60vh] justify-center">
-            <div className="relative w-32 h-32 mb-12">
+            <div className="relative w-24 h-24 sm:w-32 sm:h-32 mb-8 sm:mb-12">
               <div className="absolute inset-0 border-4 border-[#2C2C2C] rounded-full animate-ping opacity-20"></div>
-              <div className="absolute inset-0 flex items-center justify-center text-4xl transform animate-[spin_3s_ease-in-out_infinite]">
+              <div className="absolute inset-0 flex items-center justify-center text-3xl sm:text-4xl transform animate-[spin_3s_ease-in-out_infinite]">
                 ☯
               </div>
             </div>
-            <h2 className="text-2xl tracking-[0.3em] font-light text-[#2C2C2C] animate-pulse mb-8">
+            <h2 className="text-lg sm:text-2xl tracking-[0.2em] sm:tracking-[0.3em] font-light text-[#2C2C2C] animate-pulse mb-6 sm:mb-8 px-4">
               屏息凝神，心中默念所求之事...
             </h2>
-            <div className="text-4xl font-light text-gray-500 tracking-widest transition-opacity duration-500">
+            <div className="text-3xl sm:text-4xl font-light text-gray-500 tracking-widest transition-opacity duration-500">
               {countdown > 0 ? countdown : "天机显化中..."}
             </div>
           </div>
@@ -465,60 +452,59 @@ export default function AskPage() {
 
         {/* 状态 6: 最终解惑报告 */}
         {step === "done" && divination && (
-          <div className="flex flex-col items-center text-center animate-fade-in w-full max-w-3xl">
-            <h1 className="text-3xl tracking-[0.2em] text-[#2C2C2C] mb-8">天机显化</h1>
-            
-            <div className="flex items-center space-x-12 mb-10 text-xl tracking-widest font-bold text-gray-800">
+          <div className="flex flex-col items-center text-center animate-fade-in w-full">
+            <h1 className="text-2xl sm:text-3xl tracking-[0.15em] sm:tracking-[0.2em] text-[#2C2C2C] mb-6 sm:mb-8">天机显化</h1>
+
+            <div className="flex items-center space-x-8 sm:space-x-12 mb-8 sm:mb-10 text-lg sm:text-xl tracking-widest font-bold text-gray-800">
               <div className="flex flex-col items-center">
-                <span className="text-sm text-gray-500 mb-2 font-normal">本卦</span>
+                <span className="text-xs sm:text-sm text-gray-500 mb-1 sm:mb-2 font-normal">本卦</span>
                 <span>{divination.original_gua}</span>
               </div>
               <span className="text-gray-400">变</span>
               <div className="flex flex-col items-center">
-                <span className="text-sm text-gray-500 mb-2 font-normal">之卦</span>
+                <span className="text-xs sm:text-sm text-gray-500 mb-1 sm:mb-2 font-normal">之卦</span>
                 <span>{divination.changed_gua}</span>
               </div>
             </div>
 
-            <div className="w-full text-left bg-white bg-opacity-40 p-8 border border-gray-300 shadow-sm leading-loose tracking-wider text-gray-700 whitespace-pre-wrap">
+            <div className="w-full text-left bg-white bg-opacity-40 p-4 sm:p-8 border border-gray-300 shadow-sm leading-loose tracking-wider text-gray-700 whitespace-pre-wrap text-sm sm:text-base">
               {divination.interpretation}
             </div>
-            
-            {/* 大白话解析开关模块 */}
-            <div className="w-full flex flex-col items-center mt-6">
+
+            <div className="w-full flex flex-col items-center mt-4 sm:mt-6">
               {!showPlain ? (
-                <button 
-                  onClick={() => setShowPlain(true)} 
+                <button
+                  onClick={() => setShowPlain(true)}
                   className="text-sm tracking-widest text-gray-500 hover:text-[#2C2C2C] border-b border-transparent hover:border-[#2C2C2C] pb-1 transition-all duration-300"
                 >
                   看不懂？听听大白话
                 </button>
               ) : (
-                <div className="w-full mt-4 p-6 border-l-4 border-gray-800 bg-gray-100 bg-opacity-50 text-left animate-fade-in shadow-inner">
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg tracking-widest text-gray-800 font-bold">直白解签</h3>
-                    <button 
-                      onClick={() => setShowPlain(false)} 
+                <div className="w-full mt-3 sm:mt-4 p-4 sm:p-6 border-l-4 border-gray-800 bg-gray-100 bg-opacity-50 text-left animate-fade-in shadow-inner">
+                  <div className="flex justify-between items-center mb-3 sm:mb-4">
+                    <h3 className="text-base sm:text-lg tracking-widest text-gray-800 font-bold">直白解签</h3>
+                    <button
+                      onClick={() => setShowPlain(false)}
                       className="text-xs tracking-widest text-gray-400 hover:text-gray-800"
                     >
                       [ 隐藏 ]
                     </button>
                   </div>
-                  <p className="text-gray-700 tracking-wider leading-relaxed">
+                  <p className="text-gray-700 tracking-wider leading-relaxed text-sm sm:text-base">
                     {divination.plain_interpretation}
                   </p>
                 </div>
               )}
             </div>
 
-            <button onClick={reset} className="mt-12 px-10 py-3 border border-gray-400 hover:border-gray-800 hover:bg-black hover:text-white transition-colors duration-500 tracking-widest">
+            <button onClick={reset} className="mt-8 sm:mt-12 px-8 sm:px-10 py-3 border border-gray-400 hover:border-gray-800 hover:bg-black hover:text-white transition-colors duration-500 tracking-widest">
               辞别高人
             </button>
           </div>
         )}
 
       </div>
-      
+
       <style jsx global>{`
         @keyframes fade-in {
           from { opacity: 0; transform: translateY(10px); }
